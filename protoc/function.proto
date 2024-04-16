@@ -1,0 +1,10 @@
+syntax = "proto3";
+package train;
+message Parameter {
+	map<string, string> parameter=1;
+}
+message Function {
+	string function = 1;
+	map<string, string> test = 2;
+	map<string, Parameter> class = 3;
+}

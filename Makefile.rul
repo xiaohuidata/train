@@ -1,0 +1,285 @@
+#------------------------------------------------------------------------------
+# Include other config file if necessary.
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# You shouldn't need to change anything below this point.
+#------------------------------------------------------------------------------
+
+# 去除空格
+EXE_PREFIX = $(strip $(EXECUTABLE))
+DLL_POSTFIX = $(strip $(POSTFIX))
+
+UNIX := $(shell pwd)
+
+ICE_SRC_INPUT       = $(wildcard $(ICE_INPUT))
+ICE_OUTPUT          = $(patsubst %.ice,%.cpp,$(ICE_SRC_INPUT))
+ICE_SOURCE_OUTPUT   = $(notdir $(patsubst %.ice,%.cpp,$(ICE_SRC_INPUT)))
+
+GRPC_SRC_INPUT      = $(wildcard $(GRPC_INPUT))
+GRPC_OUTPUT         = $(patsubst %.proto, %.grcp.pb.cc,$(GRPC_SRC_INPUT))
+GRPC_SOURCE_OUTPUT  = $(notdir $(patsubst %.proto, %.grcp.pb.cc,$(GRPC_SRC_INPUT)))
+PROTO_OUTPUT        = $(patsubst %.proto, %.pb.cc,$(GRPC_SRC_INPUT))
+PROTO_SOURCE_OUTPUT = $(notdir $(patsubst %.proto, %.pb.cc,$(GRPC_SRC_INPUT)))
+
+VERSION_MAJOR = 1
+VERSION_MINOR = 0
+REVISION_NUMBER = 0
+BUILD_NUMBER = 8
+
+
+RELEASE_VERSION = "release"
+
+GIT = $(shell git version 2>/dev/null)
+
+ifneq ("$(GIT)","")
+COMMIT_DATE = $(shell git log -n1 --date=format:'%Y/%m/%d %H:%M:%S' --pretty="%ad")
+COMMIT_ID = $(shell git log -1 --format=%H)
+SHORT_COMMIT_ID = $(shell git log -1 --format=%h)
+IMAGE_ID = $(shell git log --pretty=format:"%h" -1)
+#REPO = ccod45
+COMMIT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+WORKDIR_STATUS = $(shell git diff --quiet || echo '(dirty)')
+REMOTE = $(shell git remote get-url --push origin)
+else
+COMMIT_DATE = "No info"
+COMMIT_ID = "No info"
+SHORT_COMMIT_ID = "No info"
+IMAGE_ID = "latest"
+COMMIT_BRANCH = "No info"
+WORKDIR_STATUS = ""
+REMOTE = "No info"
+endif
+
+DOCKER = $(shell docker version 2>/dev/null)
+HARBOR_HOME = harbor.io:1180
+ifneq ("$(shell who i am)","")
+TTY_FLAG= "-t"
+endif
+
+CORE_NUM = $(shell grep processor /proc/cpuinfo | tail -1 | awk '{if ($$3 > 3) print 4; else print $$3+1;}')
+ 
+ifeq ("$(DOCKER)","")
+
+all:version slice proto build 
+	@echo -e "\n";
+
+else
+
+all:docker-build
+
+endif
+
+version:
+	echo "0-$(PROTOS_PATH)"
+	echo "1-$(PROTOS_SUBDIRS)"
+	echo "2-$(PROTOS_FILES)"
+	echo "3-$(PROTOS_CPP_FILES)"
+	echo "4-$(PROTOS_PB_FILE)"
+	@if [ -d ./.git ] && [ -f ./include/Revision.h ]; then        \
+		rm -f ./include/Revision.h; \
+		printf "%10s %-20s\n" [RM] Revision.h; \
+	fi
+	
+	@if [ -d ./.git ] || [ ! -f ./include/Revision.h ]; then \
+		( \
+			echo "//////////////////////////////////////////////////////////////////////////////"; \
+            echo "//"; \
+            echo "//"; \
+            echo "//"; \
+            echo "//"; \
+            echo "//"; \
+            echo "//////////////////////////////////////////////////////////////////////////////"; \
+            echo ""; \
+            echo "#ifndef _REVISION_H_"; \
+            echo "#define _REVISION_H_"; \
+            echo ""; \
+            echo "// 编译时增加git版本号, 该文件不能传上git源码库"; \
+			RELEASE_VERSION=$(VERSION_MAJOR).$(VERSION_MINOR).$(REVISION_NUMBER).$(BUILD_NUMBER); \
+			echo "";\
+			cd $(UNIX); \
+			echo '#define RELEASE_VERSION "'$$RELEASE_VERSION'"'; \
+			echo '#define GIT_REVISION_NUM "$(COMMIT_ID)"'; \
+			echo '#define GIT_SHORT_REVISION_NUM "$(SHORT_COMMIT_ID)"'; \
+			echo '#define GIT_BRANCH "$(COMMIT_BRANCH)$(WORKDIR_STATUS)"'; \
+			echo '#define GIT_REPOSITY "$(REMOTE)"'; \
+			echo '#define COMMIT_DATE "$(COMMIT_DATE)"'; \
+			echo -n '#define BUILD_TIME "'; \
+			(echo -n `date "+%Y/%m/%d %H:%M:%S"`); \
+			echo '"'; \
+			echo -n '#define BUILD_BY "'; \
+			(echo -n `whoami`); \
+			echo '"'; \
+			echo -n '#define BUILD_AT "'; \
+			(echo -n `hostname`); \
+			echo '"'; \
+			echo ""; \
+                        echo "#include <stdio.h>"; \
+                        echo ""; \
+                        echo ""; \
+                        echo 'static void print_version()'; \
+                        echo '{'; \
+                        echo 'printf("***********************************************************************************\n");'; \
+						echo 'printf("Develop_Language: C++\n");'; \
+						echo 'printf("Module_Type:\n");'; \
+                        echo 'printf("Sub-system_Name: Train\n");'; \
+                        echo 'printf("Sub-system_Version: "RELEASE_VERSION"\n");'; \
+                        echo 'printf("Module_Name: Train\n");'; \
+                        echo 'printf("Module_Version: \n");'; \
+                        echo 'printf("Module_Revision: "GIT_REVISION_NUM"\n");'; \
+                        echo 'printf("Module_Short_Revision: "GIT_SHORT_REVISION_NUM"\n");'; \
+                        echo 'printf("Vcs_Branch: "GIT_BRANCH"\n");'; \
+                        echo 'printf("Vcs_Reposity: "GIT_REPOSITY"\n");'; \
+                        echo 'printf("Commit_Time: "COMMIT_DATE"\n");'; \
+                        echo 'printf("Build_Info: build by "BUILD_BY" at "BUILD_AT" on "BUILD_TIME"\n");'; \
+                        echo 'printf("All rights reserved.""\n");'; \
+                        echo 'printf("***********************************************************************************\n");'; \
+                        echo '}'; \
+                        echo ""; \
+			echo "#endif  // _REVISION_H_"; \
+		) > ./include/Revision.h; \
+		printf "%10s %-20s\n" [STAMP] Revision.h;  \
+	fi
+
+proto: proto-pb proto-grpc
+proto-grpc: $(PROTOS_GRPC_FILE)
+proto-pb: $(PROTOS_PB_FILE)
+
+slice:$(ICE_OUTPUT)
+	@if [ $(SLICE_MAKE) == "yes" ]; then \
+		export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./deps/ice/lib; \
+	fi
+
+ifneq ("$(DOCKER)","")
+
+.PHONY:docker-build
+
+docker-build:
+	@docker run -i $(TTY_FLAG) --rm --privileged=true -v ${PWD}:/root/ $(HARBOR_HOME)/system/centos7-gcc4.8.5:1.3 /bin/bash -c "rm -rf /usr/lib/libcurl* ;make version slice proto && make -j $(CORE_NUM) build;"
+
+.PHONY:docker-image
+docker-image: bin/UCDServer
+	@ldd bin/UCDServer |awk '{print $1}'|xargs -i find -name {}|xargs -i cp {} docker/lib/
+	@cp bin/UCDServer docker/bin/
+	@docker build -t ${HARBOR_HOME}/${REPO}/ucds:${IMAGE_ID}
+endif
+
+build:$(EXE_PREFIX).$(DLL_POSTFIX)
+#	@cp $(EXE_PREFIX) $(DEST_LIB)/lib$(EXE_PREFIX).$(LIB_DLL_POSTFIX)
+#	@rm $(EXE_PREFIX) $(_OBJS)
+
+$(EXE_PREFIX).$(DLL_POSTFIX):$(_OBJS)
+#@echo [`date "+%Y-%m-%d %H:%M:%S"`] Link ......
+ifeq ($(DLL_POSTFIX),exe)
+	@echo
+	$(CPP) -o $(EXE_PREFIX).$(DLL_POSTFIX) $(EXE_LINK_FLAG) $(_OBJS) $(addprefix -L,$(LIB_PATH)) $(addprefix -l,$(LIBS))
+	@if [ ! -d $(DEST_EXE) ]; then \
+		mkdir $(DEST_EXE); \
+	fi
+	@echo
+	mv $(EXE_PREFIX).$(DLL_POSTFIX) $(DEST_EXE)/$(EXE_PREFIX)
+endif
+ifeq ($(DLL_POSTFIX),dll)
+	@$(CPP) -o $(EXE_PREFIX).$(DLL_POSTFIX) $(LIB_LINK_FLAG) $(_OBJS) $(addprefix -L,$(LIB_PATH)) $(addprefix -l,$(LIBS))
+	@if [ ! -d $(DEST_LIB) ]; then \
+		mkdir $(DEST_LIB); \
+	fi
+	@echo
+	mv $(EXE_PREFIX).$(DLL_POSTFIX) $(DEST_LIB)/lib$(EXE_PREFIX).$(LIB_POSTFIX)
+endif
+ifeq ($(DLL_POSTFIX),lib)
+	ar $(PLATFORM_AR_PARAM) $(EXE_PREFIX).$(DLL_POSTFIX) $(_OBJS)
+	ranlib $(EXE_PREFIX).$(DLL_POSTFIX)
+	@if [ ! -d $(DEST_LIB) ]; then \
+		mkdir $(DEST_LIB); \
+	fi
+	@echo
+	mv $(EXE_PREFIX).$(DLL_POSTFIX) $(DEST_LIB)/lib$(EXE_PREFIX).$(LIB_POSTFIX)
+endif
+#@echo [`date "+%Y-%m-%d %H:%M:%S"`] Build complete.
+	@echo
+
+%.o:%.cpp 
+	@echo
+#@echo [`date "+%Y-%m-%d %H:%M:%S"`] Compile $< ......
+	$(CPP) -c $< $(CXXFLAGS) $(addprefix -I,$(INCLUDE_PATH))
+
+%.o:%.cc
+	@echo
+#@echo [`date "+%Y-%m-%d %H:%M:%S"`] Compile $< ......
+	$(CPP) -c $< $(CXXFLAGS) $(addprefix -I,$(INCLUDE_PATH))
+
+%.o:%.c
+	@echo
+#@echo [`date "+%Y-%m-%d %H:%M:%S"`] Compile $< ......
+	$(CC) -c $< $(CFLAGS) $(CPPFLAGS) $(addprefix -I,$(INCLUDE_PATH))
+
+%.cpp:%.ice
+	@echo "$(ICE_SLICE) [$<] -> $(ICE_OUTPUT_DIR)"
+	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./deps/ice/lib; \
+	$(ICE_SLICE) $< --output-dir $(ICE_OUTPUT_DIR) -I. -I$(SLICE_DIR) -I$(INTERFACE_HOME)/ucxserver
+
+
+%.grpc.pb.cc:%.proto
+	@echo "$(PROTOC) $(addprefix -I, $(PROTOS_SUBDIRS)) --cpp_out=$(GRPC_OUTPUT_DIR) -plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<"
+	@export LD_LIBRARY_PATH=$(GRPC_PATH)/lib; \
+	$(PROTOC) $(addprefix -I, $(PROTOS_SUBDIRS)) --grpc_out=$(GRPC_OUTPUT_DIR) --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<
+
+%.pb.cc: %.proto
+	@echo "$(PROTOC) $(addprefix -I, $(PROTOS_SUBDIRS)) --cpp_out=$(GRPC_OUTPUT_DIR) $<"
+	@export LD_LIBRARY_PATH=$(GRPC_PATH)/lib; \
+	$(PROTOC) $(addprefix -I, $(PROTOS_SUBDIRS)) --cpp_out=$(GRPC_OUTPUT_DIR) $<
+ 
+.PHONY: rebuild # $(EXE_PREFIX)
+
+rebuild:clean build
+
+release:rebuild
+	@rm -f $(_OBJS)
+	@mkdir -p $(PRODUCT_RELEASE_PATH)/$(RPM_MODULE_NAME)
+	@cp -r ../. $(PRODUCT_RELEASE_PATH)/$(RPM_MODULE_NAME)
+	@echo [`date "+%Y-%m-%d %H:%M:%S"`] Release complete.
+	@echo
+
+cleanice:
+	@if [ $(SLICE_MAKE) == "yes" ]; then \
+		clear; \
+		echo "   rm [$(ICE_OUTPUT_DIR)] - $(ICE_SOURCE_OUTPUT)"; \
+		rm -f $(addprefix $(ICE_OUTPUT_DIR)/,$(ICE_SOURCE_OUTPUT)); \
+		echo "   rm [$(ICE_OUTPUT_DIR)] - $(patsubst %.cpp,%.h,$(ICE_SOURCE_OUTPUT))"; \
+		rm -f $(addprefix $(ICE_OUTPUT_DIR)/,$(patsubst %.cpp,%.h,$(ICE_SOURCE_OUTPUT))); \
+	fi
+
+cleangrpc:
+		@if [ $(GRPC_MAKE) == "yes" ]; then \
+                clear; \
+                echo "   rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.grpc.pb.cc,$(PROTOS_FILES)))"; \
+                rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.grpc.pb.cc,$(PROTOS_FILES))); \
+                echo "   rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.grpc.pb.h,$(PROTOS_FILES)))"; \
+                rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.grpc.pb.h,$(PROTOS_FILES))); \
+                echo "   rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.pb.cc,$(PROTOS_FILES)))"; \
+                rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.pb.cc,$(PROTOS_FILES))); \
+                echo "   rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.pb.h,$(PROTOS_FILES)))"; \
+                rm -f $(addprefix $(GRPC_OUTPUT_DIR)/, $(patsubst %.proto, %.pb.h,$(PROTOS_FILES))); \
+        fi
+
+clean:cleanice cleangrpc
+	@rm -f $(_OBJS)
+
+ifeq ($(DLL_POSTFIX),exe)
+	@rm -f $(DEST_EXE)/$(EXE_PREFIX)
+endif
+ifeq ($(DLL_POSTFIX),dll)
+	@rm -f $(DEST_LIB)/lib$(EXE_PREFIX).$(LIB_POSTFIX)
+endif
+ifeq ($(DLL_POSTFIX),lib)
+	@rm -f $(DEST_LIB)/lib$(EXE_PREFIX).$(LIB_POSTFIX)
+endif
+
+	@if [ -f ./include/Revision.h ]; then \
+		rm -f ./include/Revision.h; \
+	fi
+	@echo [`date "+%Y-%m-%d %H:%M:%S"`] Clean complete.
+
+#------------------------------------------------------------------------------
+# End of Makefile 
+#-----------------------------------------------------------------------------

@@ -1,0 +1,19 @@
+{
+	"function": "int Add(int f, int c)",
+	"test":{
+		"3": "1, 2",
+		"0": "0, 0",
+		"10": "3, 7"},
+	"class": {
+		"Student": {
+				"parameter": {
+					"int":"age",
+					"string":"name"
+				}},
+		"Person": {
+				"parameter": {
+					"int":"age",
+					"string":"name"
+				}}
+	}
+}

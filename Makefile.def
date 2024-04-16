@@ -1,0 +1,146 @@
+#------------------------------------------------------------------------------
+# Include other config file if necessary.
+#------------------------------------------------------------------------------
+
+#MACHINE_HARDWAR := $(shell uname -m)
+DEPS_HOME = deps
+
+#ifeq "$(MACHINE_HARDWAR)" "aarch64"
+#DEPS_HOME = deps-aarch64
+#endif
+
+vpath %.cpp ./src/
+vpath %.cc  ./src/
+vpath %.c   ./src/
+
+#------------------------------------------------------------------------------
+# Ice para defined
+#------------------------------------------------------------------------------
+#ICE_HOME        = $(DEPS_HOME)/ice
+#ICE_BIN         = $(ICE_HOME)/bin
+#ICE_LIB         = $(ICE_HOME)/lib
+#ICE_INC         = $(ICE_HOME)/include
+#SLICE_DIR       = $(ICE_HOME)/slice
+#ICE_SLICE       = $(ICE_BIN)/slice2cpp
+#INTERFACE_HOME  = interface
+
+#------------------------------------------------------------------------------
+# Protoc para defined
+#------------------------------------------------------------------------------
+GRPC_PATH             = deps/grpc
+PROTOC                = $(GRPC_PATH)/bin/protoc
+GRPC_CPP_PLUGIN_PATH  = $(GRPC_PATH)/bin/grpc_cpp_plugin
+PROTOS_PATH           = protoc
+GRPC_OUTPUT_DIR       = src
+
+#PROTOS_SUBDIRS    = $(shell find $(PROTOS_PATH) -mindepth 1 -maxdepth 3 -type d)
+PROTOS_SUBDIRS    = $(shell find $(PROTOS_PATH) -type d)
+PROTOS_FILES      = $(notdir $(foreach subdir, $(PROTOS_SUBDIRS), $(wildcard $(subdir)/*.proto)))
+#必须grpc.pb.cc在后, 因为其依赖 pb.cc
+PROTOS_CPP_FILES  = $(patsubst %.proto, %.pb.cc, $(PROTOS_FILES)) $(patsubst %.proto, %.grpc.pb.cc, $(PROTOS_FILES))
+
+PROTOS_PB_FILE    = $(patsubst %.proto, %.pb.cc, $(PROTOS_FILES))
+PROTOS_GRPC_FILE  = $(patsubst %.proto, %.grpc.pb.cc, $(PROTOS_FILES))
+
+vpath %.proto $(PROTOS_SUBDIRS)
+
+
+#------------------------------------------------------------------------------
+# OS information
+#------------------------------------------------------------------------------
+OS_PLATFORM := $(shell uname -s)
+
+#------------------------------------------------------------------------------
+# Public library path are setted here except oracle
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------
+# interface dir
+#------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# The following parameters are path settings 
+#------------------------------------------------------------------------------
+PRODUCT_SRC_DIR  = ./src
+PRODUCT_ICE_DIR  = ./interface
+PRODUCT_INC_DIR  = ./include
+PRODUCT_DEST_EXE = ./bin
+PRODUCT_DEST_LIB = ./lib
+
+PRODUCT_RELEASE_PATH =  $(PRODUCT_HOME)/Release
+
+PRODUCT_INCLUDE_PATH := $(PRODUCT_INC_DIR) \
+
+PRODUCT_LIB_PATH     :=	/usr/lib \
+
+#------------------------------------------------------------------------------
+# The following parameters are complier settings
+#------------------------------------------------------------------------------
+
+CC              := gcc
+CPP             := g++
+SOURCES         := $(wildcard $(PRODUCT_SRC_DIR)/*.c) $(wildcard $(PRODUCT_SRC_DIR)/*.cpp) $(wildcard $(PRODUCT_SRC_DIR)/*.cc)
+OBJS            := $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(patsubst %.cc,%.o,$(SOURCES))))
+_OBJS           := $(patsubst $(PRODUCT_SRC_DIR)/%.o,%.o,$(OBJS)) 
+
+#------------------------------------------------------------------------------
+# The following parameters are linker settings
+#------------------------------------------------------------------------------
+PTHREAD_FLAG      = -pthread
+LIB_COMPILE_FLAG  = -fPIC
+LIB_POSTFIX       = so
+LIB_LINK_FLAG     = -shared -m32
+EXE_LINK_FLAG     = -m32
+PLATFORM_CFLAGS   = -O2
+#CFLAGS            = -g -m32 -fpermissive
+PRODUCT_LIBS       = m pthread Ice # utility log4cpp
+PLATFORM_AR_PARAM = -r
+DEFINE_FLAG       = -std=c++11
+
+#ifeq "$(MACHINE_HARDWAR)" "aarch64"
+LIB_LINK_FLAG     = -shared
+EXE_LINK_FLAG     =
+CFLAGS            = -g -fpermissive -Wfatal-errors
+#endif
+
+#ifeq "$(OS_PLATFORM)" "SunOS"
+#PTHREAD_FLAG      = -pthreads
+#LIB_COMPILE_FLAG  =
+#PLATFORM_LIBS     = nsl socket
+#LIB_LINK_FLAG     = -G
+#DEFINE_FLAG       = -D_UNIX_PLAT -D_SOLARIS
+#endif
+
+#ifeq "$OS_PLATFORM)" "HPUX11"
+#LIB_POSTFIX       = sl
+#DEFINE_FLAG       = -DHPUX11
+#endif
+
+#ifeq "$(OS_PLATFORM)" "HP-UX"
+#LIB_POSTFIX       = sl
+#LIB_COMPILE_FLAG  = -fPIC
+#LIB_LINK_FLAG     = -shared -mlp64
+##CFLAGS           = -02 -mlp64
+#CFLAGS            = -g
+#EXE_LINK_FLAG     = -mlp64
+#DEFINE_FLAG       = -DHPUX11
+#endif
+
+#ifeq "$(OS_PLATFORM)" "AIX"
+#LIB_POSTFIX       = a
+#PLATFORM_CFLAGS   = -O2 -maix64
+#PLATFORM_CXXFLAGS = -maix64
+#PLATFORM_LIBS     = dl
+#PLATFORM_AR_PARAM = -X64 -r
+#DEFINE_FLAG       = -D_UNIX_PLAT -D_AIX -D_THREAD_SAFE -D_LARGEFILE
+#LIB_LINK_FLAG     = -shared -pthread -maix64   -Wl #,-bloadmap:loadmap 
+#EXE_LINK_FLAG     = -maix64  -pthread -Wl,-brtl  -Wl #,-bloadmap:loadmap 
+#endif
+
+PRODUCT_LIBS       := $(ORACLE_LIBS) $(PLATFORM_LIBS) $(PRODUCT_LIBS)
+PRODUCT_CFLAGS     := $(PLATFORM_CFLAGS)
+PRODUCT_CXXFLAGS   := $(CFLAGS) $(DEFINE_FLAG) $(PLATFORM_CXXFLAGS)
+
+#------------------------------------------------------------------------------
+# End of define file 
+#------------------------------------------------------------------------------

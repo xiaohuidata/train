@@ -70,11 +70,6 @@ all:docker-build
 endif
 
 version:
-	echo "0-$(PROTOS_PATH)"
-	echo "1-$(PROTOS_SUBDIRS)"
-	echo "2-$(PROTOS_FILES)"
-	echo "3-$(PROTOS_CPP_FILES)"
-	echo "4-$(PROTOS_PB_FILE)"
 	@if [ -d ./.git ] && [ -f ./include/Revision.h ]; then        \
 		rm -f ./include/Revision.h; \
 		printf "%10s %-20s\n" [RM] Revision.h; \

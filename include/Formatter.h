@@ -29,8 +29,8 @@ public:
 		printer_->FormatInternal({ToString(args)...}, vars_, format);
 	}
 
-	void Indent() const { printer_->Indent(); }
-	void Outdent() const { printer_->Outdent(); }
+	void Indent() const { printer_->Indent(); printer_->Indent(); }
+	void Outdent() const { printer_->Outdent(); printer_->Outdent(); }
 
 	io::Printer* printer() const { return printer_; }
 

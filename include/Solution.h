@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Filed.h"
-#include "google/protobuf/compiler/cpp/Formatter.h"
+//#include "google/protobuf/compiler/cpp/Formatter.h"
+#include "Formatter.h"
 #include <google/protobuf/io/printer.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 

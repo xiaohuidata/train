@@ -141,7 +141,7 @@ proto-pb: $(PROTOS_PB_FILE)
 
 slice:$(ICE_OUTPUT)
 	@if [ $(SLICE_MAKE) == "yes" ]; then \
-		export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./deps/ice/lib; \
+		export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib/ice/lib; \
 	fi
 
 ifneq ("$(DOCKER)","")
@@ -210,7 +210,7 @@ endif
 
 %.cpp:%.ice
 	@echo "$(ICE_SLICE) [$<] -> $(ICE_OUTPUT_DIR)"
-	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./deps/ice/lib; \
+	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib/ice/lib; \
 	$(ICE_SLICE) $< --output-dir $(ICE_OUTPUT_DIR) -I. -I$(SLICE_DIR) -I$(INTERFACE_HOME)/ucxserver
 
 

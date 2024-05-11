@@ -3,10 +3,10 @@
 #------------------------------------------------------------------------------
 
 #MACHINE_HARDWAR := $(shell uname -m)
-DEPS_HOME = deps
+DEPS_HOME = lib
 
 #ifeq "$(MACHINE_HARDWAR)" "aarch64"
-#DEPS_HOME = deps-aarch64
+#DEPS_HOME = lib-aarch64
 #endif
 
 vpath %.cpp ./src/
@@ -27,10 +27,10 @@ vpath %.c   ./src/
 #------------------------------------------------------------------------------
 # Protoc para defined
 #------------------------------------------------------------------------------
-GRPC_PATH             = deps/grpc
+GRPC_PATH             = lib/grpc
 PROTOC                = $(GRPC_PATH)/bin/protoc
 GRPC_CPP_PLUGIN_PATH  = $(GRPC_PATH)/bin/grpc_cpp_plugin
-PROTOS_PATH           = protoc
+PROTOS_PATH           = protos
 GRPC_OUTPUT_DIR       = src
 
 #PROTOS_SUBDIRS    = $(shell find $(PROTOS_PATH) -mindepth 1 -maxdepth 3 -type d)

@@ -22,7 +22,8 @@ void Header::Run()
 
 void Header::fileHeader()
 {
-	Print()("#include <iostream>\n"
+	Print()("pragma once\n"
+		"#include <iostream>\n"
 		"#include <string>\n"
 		"#include <map>\n"
 		"#include <vector>\n"

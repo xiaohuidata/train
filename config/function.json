@@ -9,11 +9,16 @@
 				"parameter": {
 					"int":"age",
 					"string":"name"
-				}},
+					}
+				},
 		"Person": {
 				"parameter": {
-					"int":"age",
-					"string":"name"
-				}}
+					"int":"age1",
+					"string":"name1"
+				},
+				"inherit" :  {
+					"public":"Student"
+					}
+				}
 	}
 }

@@ -72,7 +72,7 @@ fi
 AC_SUBST(PROTOC_FORMATTER)
 
 PROTOBUF_PATH="lib/grpc-1.33_dynamic"
-AC_ARG_WITH([protobuf_path], [ [--with-protobuf_path=DIR grpc/protoc/protobuf include path [default: $PROTOBUF_PATH]]],
+AC_ARG_WITH([protobuf_path], [ [--with-protobuf_path=DIR grpc/protoc/protobuf include path [default: lib/grpc-1.33_dynamic]]],
   [
     # 检查用户是否指定了 --with-protobuf_path 选项
     if test "${with_protobuf_path+set}" = set; then

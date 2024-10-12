@@ -55,14 +55,14 @@ PROTOC_FORMATTER="formatter/formatter1"
 
 AC_MSG_CHECKING([for protoc])
 if protoc --version > /dev/null 2>&1; then
-  AC_MSG_RESULT([yes])
   protoc_version=`protoc --version | head -n 1 | awk '{print $2}'`
-  protoc_magor=`echo $protoc_magor | cut -d. -f1`
-  protoc_minor=`echo $protoc_minor | cut -d. -f2`
-  if test "$protoc_magor" -gt 3 || ( test "$protoc_magor" -eq 3 && test "$protoc_magor" -ge 22); then
-    PROTOC_FORMATTER = "formatter/formatter2"
+  protoc_magor=`echo $protoc_version | cut -d. -f1`
+  protoc_minor=`echo $protoc_version | cut -d. -f2`
+  AC_MSG_RESULT([yes] version "$protoc_version")
+  if test "$protoc_magor" -gt 3 || ( test "$protoc_magor" -eq 3 && test "$protoc_minor" -ge 22); then
+    PROTOC_FORMATTER="formatter/formatter2"
   else
-    PROTOC_FORMATTER = "formatter/formatter1"
+    PROTOC_FORMATTER="formatter/formatter1"
   fi
 else
   AC_MSG_RESULT([no])
@@ -72,10 +72,10 @@ fi
 AC_SUBST(PROTOC_FORMATTER)
 
 AC_ARG_WITH([protobuf_path], [AS_HELP_STRING([--with-protobuf_path], [grpc/protoc/protobuf include path])], [zmq_protobuf_path="lib/grpc-1.33_dynamic"], [])
-PROTOBUF_PATH = "lib/grpc-1.33_dynamic"
+PROTOBUF_PATH="lib/grpc-1.33_dynamic"
 AC_SUBST(PROTOBUF_PATH)
 
-CXXFLAGS="-std=c++11 -fpermissive"
+#CXXFLAGS="-std=c++11 -fpermissive"
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

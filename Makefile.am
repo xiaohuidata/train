@@ -15,10 +15,9 @@ bin_PROGRAMS=train
 
 train_SOURCES = $(SRC_FILES)
 
-train_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src/gen -I$(top_srcdir)/$(PROTOC_FORMATTER) -I$(top_srcdir)/$(PROTOBUF_PATH)/include
+train_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src/gen -I$(top_srcdir)/$(PROTOC_FORMATTER) -I$(PROTOBUF_PATH)/include
 
-train_LDADD = -L$(top_srcdir)/lib/grpc-1.33_dynamic/lib -lprotobuf
-#train_LDADD = -lprotobuf
+train_LDADD = -L$(PROTOBUF_PATH)/lib -lprotobuf
 
 AM_CXXFLAGS = -Wall -std=c++11 -fpermissive
 

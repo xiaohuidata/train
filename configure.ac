@@ -71,11 +71,24 @@ fi
 
 AC_SUBST(PROTOC_FORMATTER)
 
-AC_ARG_WITH([protobuf_path], [AS_HELP_STRING([--with-protobuf_path], [grpc/protoc/protobuf include path])], [zmq_protobuf_path="lib/grpc-1.33_dynamic"], [])
 PROTOBUF_PATH="lib/grpc-1.33_dynamic"
+AC_ARG_WITH([protobuf_path], [ [--with-protobuf_path=DIR grpc/protoc/protobuf include path [default: $PROTOBUF_PATH]]],
+  [
+    # 检查用户是否指定了 --with-protobuf_path 选项
+    if test "${with_protobuf_path+set}" = set; then
+      # 用户指定了 --with-protobuf_path，使用提供的路径
+      PROTOBUF_PATH="$with_protobuf_path"
+    else
+      # 用户没有指定 --with-protobuf_path 选项，使用默认值
+      PROTOBUF_PATH="$PROTOBUF_PATH"
+    fi
+    # 可以在这里添加额外的验证逻辑，例如检查目录是否存在
+    if test ! -d "$PROTOBUF_PATH"; then
+      AC_MSG_ERROR([directory "$PROTOBUF_PATH" does not exist])
+    fi
+  ]
+)
 AC_SUBST(PROTOBUF_PATH)
-
-#CXXFLAGS="-std=c++11 -fpermissive"
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

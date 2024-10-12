@@ -17,7 +17,7 @@ train_SOURCES = $(SRC_FILES)
 
 train_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src/gen -I$(top_srcdir)/$(PROTOC_FORMATTER) -I$(PROTOBUF_PATH)/include
 
-train_LDADD = -L$(PROTOBUF_PATH)/lib -lprotobuf
+train_LDADD = -L$(PROTOBUF_PATH)/lib -lprotobuf -lpthread
 
 AM_CXXFLAGS = -Wall -std=c++11 -fpermissive
 
